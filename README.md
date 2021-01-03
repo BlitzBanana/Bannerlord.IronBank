@@ -1,5 +1,5 @@
 <h1 align="center">
-	<img width="400" src=".github/banner.png" alt="Iron Bank">
+	<img width="800" src=".github/banner.png" alt="Iron Bank">
 	<br>
 </h1>
 
@@ -25,14 +25,14 @@ A very basic banking system for Mount and Blade: Bannerlord, and my first mod ev
 
 ## Screenshots
 
-<h1 align="center">
+<p align="center">
 	<img width="700" src=".github/config.png" alt="Iron Bank MCM config">
-</h1>
+</p>
 
-<h1 align="center">
+<p align="center">
 	<img width="700" src=".github/deposit.png" alt="Iron Bank deposit">
-</h1>
+</p>
 
-<h1 align="center">
+<p align="center">
 	<img width="700" src=".github/interests.png" alt="Iron Bank interests">
-</h1>
+</p>
