@@ -255,9 +255,10 @@
     <Compile Include="BankBehavior.cs" />
     <Compile Include="Mod.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Settings.cs" />
+    <Compile Include="BankSettings.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="README.md" />
     <None Include="release.ps1" />
   </ItemGroup>
   <ItemGroup>

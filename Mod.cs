@@ -20,10 +20,10 @@ namespace IronBank
             if (game.GameType is Campaign && gameStarter is CampaignGameStarter campaignStarter)
             {
                 var bankBehavior = new BankBehavior();
-                var bankModel = new BankModel();
+                var bankClanFinanceModel = new BankClanFinanceModel();
 
                 campaignStarter.AddBehavior(bankBehavior);
-                campaignStarter.AddModel(bankModel);
+                campaignStarter.AddModel(bankClanFinanceModel);
             }
         }
     }
