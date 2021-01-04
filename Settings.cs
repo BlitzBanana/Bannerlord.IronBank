@@ -4,12 +4,14 @@ using MCM.Abstractions.Settings.Base;
 using MCM.Abstractions.Settings.Base.Global;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using TaleWorlds.Localization;
 
 namespace IronBank
 {
-    public interface IBankSettingsProvider
+    /// <summary>
+    /// Generic mod settings interface.
+    /// </summary>
+    public interface ISettingsProvider
     {
         float InterestRate { get; set; }
 
@@ -17,10 +19,15 @@ namespace IronBank
 
         float TaxOut { get; set; }
 
+        int DailyOverdraftRenownLose { get; set; }
+
         float ReinvestmentRate { get; set; }
     }
 
-    public class HardcodedBankSettings : IBankSettingsProvider
+    /// <summary>
+    /// Fallback mod settings values if MCM is not used.
+    /// </summary>
+    public class HardcodedSettings : ISettingsProvider
     {
         public float InterestRate { get; set; } = 0.002f;
 
@@ -28,10 +35,15 @@ namespace IronBank
 
         public float TaxOut { get; set; } = 0.035f;
 
+        public int DailyOverdraftRenownLose { get; set; } = 10;
+
         public float ReinvestmentRate { get; set; } = 0.2f;
     }
 
-    public class BankSettings : AttributeGlobalSettings<BankSettings>, IBankSettingsProvider
+    /// <summary>
+    /// Mod settings values that are persisted by MCM and shared across campaigns.
+    /// </summary>
+    public class Settings : AttributeGlobalSettings<Settings>, ISettingsProvider
     {
         public override string Id => "IronBank";
 
@@ -39,35 +51,45 @@ namespace IronBank
             "{=Settings_Name}Iron Bank {VERSION}",
             new Dictionary<string, TextObject>
             {
-                { "VERSION", new TextObject(typeof(BankSettings).Assembly.GetName().Version.ToString(3)) }
+                { "VERSION", new TextObject(typeof(Settings).Assembly.GetName().Version.ToString(3)) }
             }
         ).ToString();
 
+        /// <summary>
+        /// Mod settings are persisted to %documents%\Mount and Blade II Bannerlord\Configs\ModSettings\Global\IronBank\IronBank.json
+        /// </summary>
         public override string FolderName { get; } = "IronBank";
 
         public override string FormatType { get; } = "json2";
 
+        /// <summary>
+        /// Provide some settings value presets.
+        /// </summary>
+        /// <returns>Settings presets</returns>
         public override IDictionary<string, Func<BaseSettings>> GetAvailablePresets()
         {
-            var realistic = new BankSettings()
+            var realistic = new Settings()
             {
                 InterestRate = 0.002f,
                 TaxIn = 0.025f,
                 TaxOut = 0.035f,
+                DailyOverdraftRenownLose = 15,
                 ReinvestmentRate = 0.2f
             };
-            var easy = new BankSettings()
+            var easy = new Settings()
             {
                 InterestRate = 0.008f,
-                TaxIn = 0.015f,
+                TaxIn = 0.010f,
                 TaxOut = 0.015f,
+                DailyOverdraftRenownLose = 10,
                 ReinvestmentRate = 0.2f
             };
-            var veryEasy = new BankSettings()
+            var veryEasy = new Settings()
             {
-                InterestRate = 0.01f,
-                TaxIn = 0.05f,
-                TaxOut = 0.05f,
+                InterestRate = 0.014f,
+                TaxIn = 0.04f,
+                TaxOut = 0.06f,
+                DailyOverdraftRenownLose = 5,
                 ReinvestmentRate = 0.2f
             };
 
@@ -103,6 +125,14 @@ namespace IronBank
             HintText = "A tax applyed by the bank on every widthdraw."
         )]
         public float TaxOut { get; set; }
+
+        [SettingPropertyGroup("{=IronBank_General}General")]
+        [SettingPropertyInteger(
+            "{=IronBank_Interests}Daily overdraft renown lose",
+            minValue: 0, maxValue: 100, valueFormat: "0", RequireRestart = false,
+            HintText = "Daily renown lose when your bank account is overdrawn."
+        )]
+        public int DailyOverdraftRenownLose { get; set; }
 
         [SettingPropertyGroup("{=IronBank_General}General")]
         [SettingPropertyFloatingInteger(

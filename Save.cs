@@ -1,4 +1,5 @@
-﻿using TaleWorlds.SaveSystem;
+﻿using System.Collections.Generic;
+using TaleWorlds.SaveSystem;
 
 namespace IronBank
 {
@@ -12,6 +13,12 @@ namespace IronBank
         protected override void DefineClassTypes()
         {
             AddClassDefinition(typeof(BankAccount), 1);
+            AddClassDefinition(typeof(BankLoan), 2);
+        }
+
+        protected override void DefineContainerDefinitions()
+        {
+            ConstructContainerDefinition(typeof(List<BankLoan>));
         }
     }
 }

@@ -14,11 +14,11 @@ namespace IronBank
 
             if (clan.Leader.StringId == Hero.MainHero.StringId && explanation != null)
             {
-                var (purse, _) = BankBehavior.BankAccount.CalculateInterests();
+                var (purse, _) = BankBehavior.BankAccount.EstimateInterests();
 
                 if (purse > 0)
                 {
-                    explanation.AddLine("Iron Bank", purse, StatExplainer.OperationType.Add);
+                    explanation.AddLine("Iron Bank - interests", purse, StatExplainer.OperationType.Add);
                     return gold + purse;
                 }
             }

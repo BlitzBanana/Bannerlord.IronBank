@@ -1,6 +1,9 @@
-﻿using MCM.Abstractions.Settings.Base.Global;
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.SaveSystem;
 
 namespace IronBank
@@ -15,8 +18,6 @@ namespace IronBank
         /// Random savegame identifier (type any large number to not be in conflict with other mods) (yeah strange system IMHO).
         /// </summary>
         public const int SAVE_ID = 2_431_637;
-
-        public IBankSettingsProvider Settings { get; set; }
 
         /// <summary>
         /// Bank account gold amount.
@@ -41,31 +42,16 @@ namespace IronBank
             }
         }
 
+        /// <summary>
+        /// Bank account loans.
+        /// </summary>
+        [SaveableProperty(3)]
+        public List<BankLoan> Loans { get; set; } = new List<BankLoan>();
+
         public BankAccount(string heroId, long gold = 0)
         {
             this.HeroId = heroId;
             this.Gold = gold;
-            this.Init();
-        }
-
-        /// <summary>
-        /// Load settings from saved values or hardcoded ones.
-        /// Must be called after a savegame loading in SyncData method of the Behavior.
-        /// Does nothing if already initialized.
-        /// </summary>
-        internal void Init()
-        {
-            if (this.Settings != null) return;
-            if (GlobalSettings<BankSettings>.Instance is null)
-            {
-                // Use default settings
-                this.Settings = new HardcodedBankSettings();
-            }
-            else
-            {
-                // Use Mod Configuration Manager
-                this.Settings = GlobalSettings<BankSettings>.Instance;
-            }
         }
 
         /// <summary>
@@ -95,12 +81,15 @@ namespace IronBank
         /// <para>Removes the gold amount from the Hero purse and adds it on his bank account minus a bank tax.</para>
         /// </summary>
         /// <param name="amount">Amount of gold that the Hero wants to deposit.</param>
-        /// <returns>Bank account gold amount, Hero gold amount</returns>
-        public (long, int) Deposit(int amount)
+        /// <returns>
+        /// Bank account gold amount,
+        /// Hero gold amount
+        /// </returns>
+        public (long account, int purse) Deposit(int amount)
         {
             if (!this.CanDeposit(amount)) return (this.Gold, this.Hero.Gold);
 
-            int tax = (int)Math.Ceiling(this.Settings.TaxIn * amount);
+            int tax = (int)Math.Ceiling(Mod.Settings.TaxIn * amount);
             this.Hero.ChangeHeroGold(amount * -1);
             this.Gold += amount - tax;
 
@@ -112,14 +101,17 @@ namespace IronBank
         /// <para>Removes the gold amount from the Hero bank account and adds it on his purse minus a bank tax.</para>
         /// </summary>
         /// <param name="amount">Amount of gold that the Hero wants to withdraw.</param>
-        /// <returns>Bank account gold amount, Hero gold amount</returns>
-        public (long, int) Withdraw(int amount)
+        /// <returns>
+        /// Bank account gold amount,
+        /// Hero gold amount
+        /// </returns>
+        public (long account, int purse) Withdraw(int amount)
         {
             if (!this.CanWithdraw(amount)) return (this.Gold, this.Hero.Gold);
 
-            int tax = (int)Math.Ceiling(this.Settings.TaxOut * amount);
+            int tax = (int)Math.Ceiling(Mod.Settings.TaxOut * amount);
             this.Gold -= amount;
-            this.Hero.ChangeHeroGold((amount - tax) * 1);
+            this.Hero.ChangeHeroGold(amount - tax);
 
             return (this.Gold, this.Hero.Gold);
         }
@@ -127,27 +119,56 @@ namespace IronBank
         /// <summary>
         /// Compute due interests and the repartition.
         /// </summary>
-        /// <returns>Amount of interests to deposit into Hero purse, Amount of interests to deposit into bank account</returns>
-        public (int, int) CalculateInterests()
+        /// <returns>
+        /// Amount of interests to deposit into Hero purse,
+        /// Amount of interests to deposit into bank account
+        /// </returns>
+        public (int purse, int account) EstimateInterests()
         {
-            int amount = (int)Math.Floor(this.Gold * this.Settings.InterestRate);
-            int purse = (int)Math.Floor((1f - this.Settings.ReinvestmentRate) * amount);
-            int account = (int)Math.Ceiling(this.Settings.ReinvestmentRate * amount);
+            int amount = (int)Math.Floor(this.Gold * Mod.Settings.InterestRate);
+            int purse = (int)Math.Floor((1f - Mod.Settings.ReinvestmentRate) * amount);
+            int account = (int)Math.Ceiling(Mod.Settings.ReinvestmentRate * amount);
+
             return (purse, account);
         }
 
         /// <summary>
         /// Time to distribute interests.
         /// </summary>
-        /// <returns>Amount of interests to deposit into Hero purse, Amount of interests to deposit into bank account</returns>
-        public (int, int) ApplyInterests()
+        /// <returns>
+        /// Amount of interests to add to Hero purse,
+        /// Amount of interests to add to bank account,
+        /// Amount of payments due to remove from bank account
+        /// </returns>
+        public (int purse, int account, int payments) ApplyDailyTransactions()
         {
-            var (purse, account) = this.CalculateInterests();
+            var (purse, account) = this.EstimateInterests();
 
             this.Hero.ChangeHeroGold(purse);
             this.Gold += account;
 
-            return (purse, account);
+            int payments = 0;
+            foreach (BankLoan loan in this.Loans)
+            {
+                var (_payment, _remaining) = loan.CalculatePayment();
+                this.Gold += _payment;
+                loan.Remaining = _remaining;
+                payments += _payment;
+            }
+
+            // Hero account is overdrawn, let's make him lose some renown
+            if (this.Gold < 0)
+            {
+                this.Hero.Clan.AddRenown(-10);
+                InformationManager.DisplayMessage(
+                    new InformationMessage($"Iron Bank: You owes us <b>{this.Gold}</b><img src=\"Icons\\Coin@2x\"> from your loans, be careful.", Colors.Magenta)
+                );
+            }
+
+            // Remove fully paid loansloans
+            this.Loans = this.Loans.Where((loan) => loan.Remaining <= 0).ToList();
+
+            return (purse, account, payments);
         }
     }
 }

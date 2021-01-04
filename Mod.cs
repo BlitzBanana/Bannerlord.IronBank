@@ -1,16 +1,31 @@
-﻿using TaleWorlds.Core;
-using TaleWorlds.MountAndBlade;
+﻿using MCM.Abstractions.Settings.Base.Global;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
+using TaleWorlds.Library;
+using TaleWorlds.MountAndBlade;
 
 namespace IronBank
 {
     public class Mod: MBSubModuleBase
     {
-        protected override void OnSubModuleLoad()
-        {
-            base.OnSubModuleLoad();
+        public static ISettingsProvider Settings { get; private set; }
 
-            InformationManager.DisplayMessage(new InformationMessage("<b>Iron Bank</b> has loaded."));
+        protected override void OnBeforeInitialModuleScreenSetAsRoot()
+        {
+            base.OnBeforeInitialModuleScreenSetAsRoot();
+
+            if (GlobalSettings<Settings>.Instance is null)
+            {
+                // Use default settings
+                Settings = new HardcodedSettings();
+            }
+            else
+            {
+                // Use Mod Configuration Manager
+                Settings = GlobalSettings<Settings>.Instance;
+            }
+
+            InformationManager.DisplayMessage(new InformationMessage("<b>Iron Bank</b> has loaded.", Colors.Magenta));
         }
 
         protected override void OnGameStart(Game game, IGameStarter gameStarter)

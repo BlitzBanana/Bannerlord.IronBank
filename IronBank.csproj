@@ -249,13 +249,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BankLoan.cs" />
     <Compile Include="BankAccount.cs" />
     <Compile Include="BankModel.cs" />
     <Compile Include="Save.cs" />
     <Compile Include="BankBehavior.cs" />
     <Compile Include="Mod.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="BankSettings.cs" />
+    <Compile Include="Settings.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
