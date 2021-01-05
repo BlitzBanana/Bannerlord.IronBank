@@ -48,10 +48,17 @@ namespace IronBank
         [SaveableProperty(3)]
         public List<BankLoan> Loans { get; set; } = new List<BankLoan>();
 
-        public BankAccount(string heroId, long gold = 0)
+        /// <summary>
+        /// Bank account Hero identity.
+        /// </summary>
+        [SaveableProperty(4)]
+        public float ReinvestmentRatio { get; set; }
+
+        public BankAccount(string heroId, long gold = 0, float reinvestmentRatio = 0.2f)
         {
             this.HeroId = heroId;
             this.Gold = gold;
+            this.ReinvestmentRatio = reinvestmentRatio;
         }
 
         /// <summary>
@@ -126,8 +133,8 @@ namespace IronBank
         public (int purse, int account) EstimateInterests()
         {
             int amount = (int)Math.Floor(this.Gold * Mod.Settings.InterestRate);
-            int purse = (int)Math.Floor((1f - Mod.Settings.ReinvestmentRate) * amount);
-            int account = (int)Math.Ceiling(Mod.Settings.ReinvestmentRate * amount);
+            int purse = (int)Math.Floor((1f - this.ReinvestmentRatio) * amount);
+            int account = (int)Math.Ceiling(this.ReinvestmentRatio * amount);
 
             return (purse, account);
         }
@@ -165,8 +172,8 @@ namespace IronBank
                 );
             }
 
-            // Remove fully paid loansloans
-            this.Loans = this.Loans.Where((loan) => loan.Remaining <= 0).ToList();
+            // Remove fully repaid loans
+            this.Loans = this.Loans.Where((loan) => loan.Remaining > 0).ToList();
 
             return (purse, account, payments);
         }

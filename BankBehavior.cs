@@ -15,13 +15,17 @@ namespace IronBank
         private const string BANK_MENU_ID = "bank";
         private const string BANK_MENU_DEPOSIT_ID = "bank_deposit";
         private const string BANK_MENU_WITHDRAW_ID = "bank_withdraw";
-        private const string BANK_MENU_LOAN_ID = "bank_loan";
+        private const string BANK_MENU_TAKE_LOAN_ID = "bank_take_loan";
+        private const string BANK_MENU_SEE_LOANS_ID = "bank_see_loans";
+        private const string BANK_MENU_REINVESTMENT_ID = "bank_reinvestment";
         private const string BANK_MENU_LEAVE_ID = "bank_leave";
         private const int BANK_MENU_INDEX = 4;
         private const int BANK_MENU_DEPOSIT_INDEX = 1;
         private const int BANK_MENU_WITHDRAW_INDEX = 2;
-        private const int BANK_MENU_LOAN_INDEX = 3;
-        private const int BANK_MENU_LEAVE_INDEX = 4;
+        private const int BANK_MENU_TAKE_LOAN_INDEX = 3;
+        private const int BANK_MENU_SEE_LOANs_INDEX = 4;
+        private const int BANK_MENU_REINVESTMENT_INDEX = 5;
+        private const int BANK_MENU_LEAVE_INDEX = 6;
 
         private static BankAccount _bank_account = null;
 
@@ -63,7 +67,7 @@ namespace IronBank
                 if (account > 0)
                 {
                     InformationManager.DisplayMessage(
-                        new InformationMessage($"Iron Bank: We credited your account <b>{account}</b><img src=\"Icons\\Coin@2x\"> from interests.")
+                        new InformationMessage($"Iron Bank: We credited your account by <b>{account}</b><img src=\"Icons\\Coin@2x\"> from interests.")
                     );
                 }
 
@@ -133,6 +137,10 @@ namespace IronBank
                             isNegativeOptionShown: true,
                             affirmativeText: "Deposit",
                             negativeText: "Back",
+                            textCondition: new Func<string, bool>((string input) =>
+                            {
+                                return int.TryParse(input, out int amount) && BankAccount.CanDeposit(amount);
+                            }),
                             affirmativeAction: new Action<string>((string input) =>
                             {
                                 if (int.TryParse(input, out int amount) && BankAccount.CanDeposit(amount))
@@ -145,11 +153,7 @@ namespace IronBank
                                     InformationManager.DisplayMessage(new InformationMessage($"Your bank transfer encountered a problem and could not be processed."));
                                 }
                             }),
-                            negativeAction: new Action(() => { }),
-                            textCondition: new Func<string, bool>((string input) =>
-                            {
-                                return int.TryParse(input, out int amount) && BankAccount.CanDeposit(amount);
-                            })
+                            negativeAction: new Action(() => { })
                         ), true);
                         return;
                     }
@@ -179,6 +183,10 @@ namespace IronBank
                             isNegativeOptionShown: true,
                             affirmativeText: "Withdraw",
                             negativeText: "Back",
+                            textCondition: new Func<string, bool>((string input) =>
+                            {
+                                return int.TryParse(input, out int amount) && BankAccount.CanWithdraw(amount);
+                            }),
                             affirmativeAction: new Action<string>((string input) =>
                             {
                                 if (int.TryParse(input, out int amount) && BankAccount.CanWithdraw(amount))
@@ -191,11 +199,7 @@ namespace IronBank
                                     InformationManager.DisplayMessage(new InformationMessage($"Your bank transfer encountered a problem and could not be processed."));
                                 }
                             }),
-                            negativeAction: new Action(() => { }),
-                            textCondition: new Func<string, bool>((string input) =>
-                            {
-                                return int.TryParse(input, out int amount) && BankAccount.CanWithdraw(amount);
-                            })
+                            negativeAction: new Action(() => { })
                         ), true);
                         return;
                     }
@@ -204,60 +208,203 @@ namespace IronBank
                 // Loan option
                 campaignGameStarter.AddGameMenuOption(
                     menuId: BANK_MENU_ID,
-                    optionId: BANK_MENU_LOAN_ID,
-                    optionText: "{=bank_account_LOAN}Take a loan",
-                    index: BANK_MENU_LOAN_INDEX,
+                    optionId: BANK_MENU_TAKE_LOAN_ID,
+                    optionText: "{=bank_account_take_loan}Take a loan",
+                    index: BANK_MENU_TAKE_LOAN_INDEX,
+                    isLeave: false,
+                    isRepeatable: false,
+                    condition: delegate (MenuCallbackArgs args)
+                    {
+                        var capacity = new BankLoanCapacity(Hero.MainHero);
+                        args.optionLeaveType = GameMenuOption.LeaveType.Trade;
+                        args.IsEnabled = Hero.MainHero.Gold >= 0 && capacity.MinAmount > 0;
+                        return true;
+                    },
+                    consequence: delegate (MenuCallbackArgs args)
+                    {
+                        var capacity = new BankLoanCapacity(Hero.MainHero);
+                        InformationManager.ShowTextInquiry(new TextInquiryData(
+                            titleText: $"How much do you want, Sir ?",
+                            text: $"Your current balance is <b>{BankAccount.Gold}</b><img src=\"Icons\\Coin@2x\">.\n" +
+                                $"You maximum loan capacity is <b>{capacity.MaxAmount}</b><img src=\"Icons\\Coin@2x\">.",
+                            isAffirmativeOptionShown: true,
+                            isNegativeOptionShown: true,
+                            affirmativeText: "Continue",
+                            negativeText: "Back",
+                            textCondition: new Func<string, bool>((string amountInput) =>
+                            {
+                                return int.TryParse(amountInput, out int amount)
+                                    && capacity.MinAmount <= amount
+                                    && capacity.MaxAmount >= amount;
+                            }),
+                            affirmativeAction: new Action<string>((string amountInput) =>
+                            {
+                                if (int.TryParse(amountInput, out int amount) && capacity.MinAmount <= amount && capacity.MaxAmount >= amount)
+                                {
+                                    InformationManager.ShowTextInquiry(new TextInquiryData(
+                                        titleText: $"How long do you want to loan ?",
+                                        text: $"You can loan for {capacity.MaxDuration} days maximum.",
+                                        isAffirmativeOptionShown: true,
+                                        isNegativeOptionShown: true,
+                                        affirmativeText: "Continue",
+                                        negativeText: "Back",
+                                        textCondition: new Func<string, bool>((string durationInput) =>
+                                        {
+                                            return int.TryParse(durationInput, out int duration)
+                                                && capacity.MinDuration >= duration
+                                                && capacity.MaxDuration <= duration;
+                                        }),
+                                        affirmativeAction: new Action<string>((string durationInput) =>
+                                        {
+                                            if (int.TryParse(durationInput, out int duration) && capacity.MinDuration >= duration && capacity.MaxDuration <= duration)
+                                            {
+                                                InformationManager.ShowTextInquiry(new TextInquiryData(
+                                                    titleText: $"And when would you begin to repay ?",
+                                                    text: $"You can push back payment for {capacity.MaxDelay} days maximum.",
+                                                    isAffirmativeOptionShown: true,
+                                                    isNegativeOptionShown: true,
+                                                    affirmativeText: "Continue",
+                                                    negativeText: "Back",
+                                                    textCondition: new Func<string, bool>((string delayInput) =>
+                                                    {
+                                                        return int.TryParse(delayInput, out int delay)
+                                                            && capacity.MinDelay >= delay
+                                                            && capacity.MaxDelay <= delay;
+                                                    }),
+                                                    affirmativeAction: new Action<string>((string delayInput) =>
+                                                    {
+                                                        if (int.TryParse(delayInput, out int delay) && capacity.MinDelay >= delay && capacity.MaxDelay <= delay)
+                                                        {
+                                                            var simulation = new BankLoanSimulation(Hero.MainHero, amount, delay, duration);
+                                                            InformationManager.ShowInquiry(new InquiryData(
+                                                                titleText: "Are you sure ?",
+                                                                text: $"You will begin to pay <b>{simulation.Payments * -1}</b><img src=\"Icons\\Coin@2x\"> a day from your account for <b>{simulation.Duration} days</b> in <b>{simulation.Delay} days</b>. " +
+                                                                    $"Borrowing from us {amount}<img src=\"Icons\\Coin@2x\"> will cost you <b>{simulation.Cost}</b><img src=\"Icons\\Coin@2x\"> of bank interests for a total of <b>{simulation.Total}</b><img src=\"Icons\\Coin@2x\"> repaid.\n",
+                                                                isAffirmativeOptionShown: true,
+                                                                isNegativeOptionShown: true,
+                                                                affirmativeText: "Agree",
+                                                                negativeText: "Refuse",
+                                                                affirmativeAction: new Action(() =>
+                                                                {
+                                                                    BankAccount.Loans.Add(new BankLoan(simulation));
+                                                                }),
+                                                                negativeAction: new Action(() => { })
+                                                            ));
+                                                        }
+                                                        else
+                                                        {
+                                                            InformationManager.DisplayMessage(new InformationMessage($"You loan simulation has been aborted."));
+                                                        }
+                                                    }),
+                                                    negativeAction: new Action(() => { })
+                                                ), true);
+                                            }
+                                            else
+                                            {
+                                                InformationManager.DisplayMessage(new InformationMessage($"You loan simulation has been aborted."));
+                                            }
+                                        }),
+                                        negativeAction: new Action(() => { })
+                                    ), true);
+                                }
+                                else
+                                {
+                                    InformationManager.DisplayMessage(new InformationMessage($"You loan simulation has been aborted."));
+                                }
+                            }),
+                            negativeAction: new Action(() => { })
+                        ), true);
+                        return;
+                    }
+                );
+
+                // Current loans
+                campaignGameStarter.AddGameMenuOption(
+                    menuId: BANK_MENU_ID,
+                    optionId: BANK_MENU_SEE_LOANS_ID,
+                    optionText: "{=bank_account_see_loans}See my loans",
+                    index: BANK_MENU_SEE_LOANs_INDEX,
                     isLeave: false,
                     isRepeatable: false,
                     condition: delegate (MenuCallbackArgs args)
                     {
                         args.optionLeaveType = GameMenuOption.LeaveType.Trade;
-                        args.IsEnabled = Hero.MainHero.Gold >= 0 && BankLoan.LoanCapacity(Hero.MainHero) > 0;
+                        args.IsEnabled = BankAccount.Loans.Count > 0;
                         return true;
                     },
                     consequence: delegate (MenuCallbackArgs args)
                     {
-                        var capacity = BankLoan.LoanCapacity(Hero.MainHero);
+                        string text = "";
+
+                        foreach (var loan in BankAccount.Loans)
+                        {
+                            text += $"~ Loan took on {CampaignTime.Days(loan.Date)} for <b>{loan.Amount}</b><img src=\"Icons\\Coin@2x\">\n";
+                            text += (loan.Remaining == loan.Total)
+                                ? $"Daily payments will start on {CampaignTime.Days(loan.PaymentsStartDate)}\n"
+                                : $"Daily payments started on {CampaignTime.Days(loan.PaymentsStartDate)}\n";
+                            text += $"Daily payments will end on {CampaignTime.Days(loan.PaymentsEndDate)}\n";
+                            text += $"Daily payments: <b>{loan.Payments * -1}</b><img src=\"Icons\\Coin@2x\">\n";
+                            text += $"Remaining to pay: <b>{loan.Remaining}</b><img src=\"Icons\\Coin@2x\">\n";
+                            text += $" \n";
+                            text += $" \n";
+                        }
+
+                        InformationManager.ShowInquiry(new InquiryData(
+                            titleText: $"Your current loans.",
+                            text: text,
+                            isAffirmativeOptionShown: true,
+                            isNegativeOptionShown: false,
+                            affirmativeText: "Ok",
+                            negativeText: "Back",
+                            affirmativeAction: new Action(() => { }),
+                            negativeAction: new Action(() => { })
+                        ), true);
+                        return;
+                    }
+                );
+
+                // Reinvestment ratio setting
+                campaignGameStarter.AddGameMenuOption(
+                    menuId: BANK_MENU_ID,
+                    optionId: BANK_MENU_REINVESTMENT_ID,
+                    optionText: "{=bank_account_reinvestment}Set my reinvestment ratio",
+                    index: BANK_MENU_REINVESTMENT_INDEX,
+                    isLeave: false,
+                    isRepeatable: false,
+                    condition: delegate (MenuCallbackArgs args)
+                    {
+                        args.optionLeaveType = GameMenuOption.LeaveType.Trade;
+                        args.IsEnabled = Hero.MainHero.Gold >= 0;
+                        return true;
+                    },
+                    consequence: delegate (MenuCallbackArgs args)
+                    {
                         InformationManager.ShowTextInquiry(new TextInquiryData(
-                            titleText: $"How much do you want ?",
-                            text: $"Your current balance is <b>{BankAccount.Gold}</b><img src=\"Icons\\Coin@2x\">.\n" +
-                                $"You maximum loan capacity is <b>{capacity}</b><img src=\"Icons\\Coin@2x\">.",
+                            titleText: $"How much of interest will be keept on your account ?",
+                            text: $"Set a percentage (0-100)." +
+                                $"- 0 all your interests will go to your purse." +
+                                $"- 100 all your interests will go to your account.",
                             isAffirmativeOptionShown: true,
                             isNegativeOptionShown: true,
-                            affirmativeText: "Loan",
+                            affirmativeText: "Set",
                             negativeText: "Back",
+                            textCondition: new Func<string, bool>((string input) =>
+                            {
+                                return int.TryParse(input, out int amount) && amount >= 0 && amount <= 100;
+                            }),
                             affirmativeAction: new Action<string>((string input) =>
                             {
-                                if (int.TryParse(input, out int amount) && capacity >= amount)
+                                if (int.TryParse(input, out int amount) && amount >= 0 && amount <= 100)
                                 {
-                                    int cost = BankLoan.LoanCost(amount);
-                                    int payment = BankLoan.LoanPayments(amount + cost);
-                                    InformationManager.ShowInquiry(new InquiryData(
-                                        titleText: "Are you sure ?",
-                                        text: $"Borrowing {amount}<img src=\"Icons\\Coin@2x\"> will cost you <b>{cost}</b><img src=\"Icons\\Coin@2x\"> of bank interests.\n" +
-                                            $"You will begin to pay <b>{payment}</b><img src=\"Icons\\Coin@2x\"> a day for <b>31 days</b> in <b>15 days</b>.",
-                                        isAffirmativeOptionShown: true,
-                                        isNegativeOptionShown: false,
-                                        affirmativeText: "Yes",
-                                        negativeText: "No",
-                                        affirmativeAction: new Action(() =>
-                                        {
-                                            var loan = new BankLoan(Hero.MainHero.StringId, amount, cost);
-                                            BankAccount.Loans.Add(loan);
-                                        }),
-                                        negativeAction: new Action(() => { })
-                                    ));
+                                    BankAccount.ReinvestmentRatio = amount / 100f;
+                                    this.UpdateBankMenuText();
                                 }
                                 else
                                 {
-                                    InformationManager.DisplayMessage(new InformationMessage($"Your bank transfer encountered a problem and could not be processed."));
+                                    InformationManager.DisplayMessage(new InformationMessage($"Iron Bank encountered a problem."));
                                 }
                             }),
-                            negativeAction: new Action(() => { }),
-                            textCondition: new Func<string, bool>((string input) =>
-                            {
-                                return int.TryParse(input, out int amount) && capacity >= amount;
-                            })
+                            negativeAction: new Action(() => { })
                         ), true);
                         return;
                     }
@@ -294,7 +441,7 @@ namespace IronBank
                 "IronBank_Menu_Bank",
                 $"\"Welcome to the <b>Iron Bank</b> embassy of {Settlement.CurrentSettlement?.EncyclopediaLinkWithName}\", says the emissary.\n" +
                 $"Your bank account balance is <b>{BankAccount.Gold}</b>{{GOLD_ICON}}.\n" +
-                $"Daily interest rate is {Mod.Settings.InterestRate:P}.",
+                $"Daily interest rate is {Mod.Settings.InterestRate:P} ({BankAccount.ReinvestmentRatio * 100:0}% will stay on your account).",
                 false
             );
         }

@@ -22,7 +22,7 @@ A very basic banking system for Mount and Blade: Bannerlord, and my first mod ev
 - [x] Overdraft, affecting by renown (a negative bank balance lowers your renown proportionally)
 - [ ] Dynamic interests rate, affected by world stability (more wars means higher interest rates)
 - [ ] Move reinvestment option from MCM to ingame bank menu
-- [ ] Update release script to name the zip with the SubModule version
+- [x] Update release script to name the zip with the SubModule version
 - [ ] Publish on [nexus](https://www.nexusmods.com/mountandblade2bannerlord)
 
 ## Development
@@ -30,6 +30,10 @@ A very basic banking system for Mount and Blade: Bannerlord, and my first mod ev
 ### Prerequisites
 
 - Mount and Blade II: Bannerlord
+	- (optional) With [MCM mod](https://www.nexusmods.com/mountandblade2bannerlord/mods/612)
+		- And its dependencies [ButterLib mod](https://www.nexusmods.com/mountandblade2bannerlord/mods/2018)
+		- And its dependencies [Harmony](https://www.nexusmods.com/mountandblade2bannerlord/mods/2006)
+		- And its dependencies [UIExtenderEx mod](https://www.nexusmods.com/mountandblade2bannerlord/mods/2102)
 - Visual Studio
 - Powershell (building script)
 

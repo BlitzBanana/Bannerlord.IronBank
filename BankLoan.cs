@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.SaveSystem;
 
@@ -39,15 +40,9 @@ namespace IronBank
         public int Total { get { return this.Amount + this.Cost; } }
 
         /// <summary>
-        /// Due payments every days.
-        /// </summary>
-        [SaveableProperty(4)]
-        public int Repays { get; set; }
-
-        /// <summary>
         /// Loan date.
         /// </summary>
-        [SaveableProperty(5)]
+        [SaveableProperty(4)]
         public float Date { get; set; }
 
         /// <summary>
@@ -59,13 +54,41 @@ namespace IronBank
         /// <summary>
         /// Loan payment delay in days.
         /// </summary>
-        [SaveableProperty(5)]
+        [SaveableProperty(6)]
         public int Delay { get; set; }
+
+        /// <summary>
+        /// Start date of payments in days.
+        /// </summary>
+        public float PaymentsStartDate
+        {
+            get
+            {
+                return this.Date + this.Delay;
+            }
+        }
+
+        /// <summary>
+        /// Estimated end date of payments in days.
+        /// </summary>
+        public float PaymentsEndDate
+        {
+            get
+            {
+                return this.Date + this.Delay + this.Duration;
+            }
+        }
+
+        /// <summary>
+        /// Amount to repay daily.
+        /// </summary>
+        [SaveableProperty(7)]
+        public int Payments { get; set; }
 
         /// <summary>
         /// Bank account Hero identity.
         /// </summary>
-        [SaveableProperty(6)]
+        [SaveableProperty(8)]
         public string HeroId { get; set; }
 
         /// <summary>
@@ -79,8 +102,69 @@ namespace IronBank
             }
         }
 
+        public BankLoan(BankLoanSimulation simulation)
+        {
+            this.HeroId = simulation.HeroId;
+            this.Amount = simulation.Amount;
+            this.Cost = simulation.Cost;
+            this.Payments = simulation.Payments;
+            this.Remaining = simulation.Total;
+            this.Date = (float)CampaignTime.Now.ToDays;
+            this.Duration = simulation.Duration;
+            this.Delay = simulation.Delay;
+
+            this.Hero.ChangeHeroGold(simulation.Amount);
+        }
+
+        /// <summary>
+        /// Current payment value and remaining loan value.
+        /// </summary>
+        /// <returns>
+        /// Payment amount,
+        /// Remaining loan value
+        /// </returns>
+        public (int payment, int remaining) CalculatePayment()
+        {
+            if (CampaignTime.Now.ToDays < this.PaymentsStartDate) return (0, this.Remaining);
+            int value = Math.Max(this.Payments, this.Remaining * -1);
+            return (value, this.Remaining + value);
+        }
+    }
+
+    public struct BankLoanCapacity
+    {
+        public int MinDelay { get; }
+        public int MaxDelay { get; }
+        public int MinDuration { get; }
+        public int MaxDuration { get; }
+        public int MinAmount { get; }
+        public int MaxAmount { get; }
+
+        public BankLoanCapacity(Hero hero)
+        {
+            float renown = hero.Clan.Renown;
+            int currentLoansCount= BankBehavior.BankAccount.Loans.Count;
+            int currentLoansAmount = BankBehavior.BankAccount.Loans.Sum(loan => loan.Amount);
+            int absoluteMaxAmount = Math.Max(1, (int)Math.Floor(renown * renown * 0.04f + renown * 50f));
+
+            // The max amount is directly proportional of Hero.renown
+            this.MinAmount = 1;
+            this.MaxAmount = currentLoansCount < 4 ? absoluteMaxAmount - currentLoansAmount : 0;
+
+            // The delay is clamped to (5, 31)
+            this.MinDelay = 1;
+            this.MaxDelay = (int)Math.Max(5, renown / 800f * (float)CampaignTime.DaysInSeason);
+
+            // The duration is clamped to (10, 62)
+            this.MinDuration = 1;
+            this.MaxDuration = (int)Math.Max(10, renown / 250f * (float)CampaignTime.DaysInSeason);
+        }
+    }
+
+    public struct BankLoanSimulation {
         /// <summary>
         /// Compute current world chaos, based on the wars count.
+        /// More wars means higher loan costs but higher account interests !
         /// </summary>
         public static float WorldChaos
         {
@@ -101,66 +185,34 @@ namespace IronBank
             }
         }
 
-        /// <summary>
-        /// Calculate Hero loan capacity, based on its renown.
-        /// </summary>
-        /// <param name="hero">Hero</param>
-        /// <returns>Hero maximum loan amount</returns>
-        public static int LoanCapacity(Hero hero)
+        public string HeroId { get; private set; }
+        public int Amount { get; private set; }
+        public int Cost { get; private set; }
+        public int Delay { get; private set; }
+        public int Duration { get; private set; }
+        public int Payments { get; private set; }
+        public int Total
         {
-            var renown = hero.Clan.Renown;
-            return (int)Math.Floor(renown * renown * 0.04f + renown * 50f);
+            get
+            {
+                return this.Amount + this.Cost;
+            }
         }
 
-        /// <summary>
-        /// Calculate a loan cost, based on current world wars.
-        /// </summary>
-        /// <param name="amount">Amount of the loan to simulate</param>
-        /// <returns>Loan cost</returns>
-        public static int LoanCost(int amount)
+        public BankLoanSimulation(Hero hero, int amount, int delay = 15, int duration = 31)
         {
-            return (int)Math.Ceiling(amount * (WorldChaos * 1.5f));
-        }
+            int totalDuration = delay + duration;
+            float rate = BankLoanSimulation.WorldChaos / 50f;
+            int cost = (int)Math.Ceiling(amount * rate * totalDuration);
+            int total = amount + cost;
+            int payments = total / duration * -1;
 
-        /// <summary>
-        /// Calculate a loan payments, based on its value and duration.
-        /// </summary>
-        /// <param name="total">Total loan value (amount + cost)</param>
-        /// <param name="duration">Loan duration in days</param>
-        /// <returns>Daily payment value (negative value)</returns>
-        public static int LoanPayments(int total, int duration = 31)
-        {
-            return (int)Math.Ceiling((float)total / (float)duration) * -1;
-        }
-
-        public BankLoan(string heroId, int amount, int cost, int delay = 15, int duration = 31)
-        {
-            this.HeroId = heroId;
+            this.HeroId = hero.StringId;
             this.Amount = amount;
             this.Cost = cost;
-            this.Remaining = amount + cost;
-            this.Cost = cost;
-            this.Date = (float)CampaignTime.Now.ToDays;
-            this.Duration = duration;
             this.Delay = delay;
-
-            this.Hero.ChangeHeroGold(amount);
-        }
-
-        /// <summary>
-        /// Compute current payment value and remaining loan value.
-        /// </summary>
-        /// <returns>
-        /// Payment amount,
-        /// Remaining loan value
-        /// </returns>
-        public (int payment, int remaining) CalculatePayment()
-        {
-            if (CampaignTime.Days(this.Date).ElapsedDaysUntilNow < this.Delay) return (0, this.Remaining);
-
-            int payment = LoanPayments(this.Remaining, this.Duration);
-            int remaining = this.Remaining + payment;
-            return (payment, remaining);
+            this.Duration = duration;
+            this.Payments = payments;
         }
     }
 }

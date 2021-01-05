@@ -32,7 +32,7 @@ namespace IronBank
         {
             base.OnGameStart(game, gameStarter);
 
-            if (game.GameType is Campaign && gameStarter is CampaignGameStarter campaignStarter)
+            if (game.GameType is TaleWorlds.CampaignSystem.Campaign && gameStarter is CampaignGameStarter campaignStarter)
             {
                 var bankBehavior = new BankBehavior();
                 var bankClanFinanceModel = new BankClanFinanceModel();

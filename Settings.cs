@@ -20,8 +20,6 @@ namespace IronBank
         float TaxOut { get; set; }
 
         int DailyOverdraftRenownLose { get; set; }
-
-        float ReinvestmentRate { get; set; }
     }
 
     /// <summary>
@@ -36,8 +34,6 @@ namespace IronBank
         public float TaxOut { get; set; } = 0.035f;
 
         public int DailyOverdraftRenownLose { get; set; } = 10;
-
-        public float ReinvestmentRate { get; set; } = 0.2f;
     }
 
     /// <summary>
@@ -73,24 +69,21 @@ namespace IronBank
                 InterestRate = 0.002f,
                 TaxIn = 0.025f,
                 TaxOut = 0.035f,
-                DailyOverdraftRenownLose = 15,
-                ReinvestmentRate = 0.2f
+                DailyOverdraftRenownLose = 15
             };
             var easy = new Settings()
             {
                 InterestRate = 0.008f,
                 TaxIn = 0.010f,
                 TaxOut = 0.015f,
-                DailyOverdraftRenownLose = 10,
-                ReinvestmentRate = 0.2f
+                DailyOverdraftRenownLose = 10
             };
             var veryEasy = new Settings()
             {
                 InterestRate = 0.014f,
                 TaxIn = 0.04f,
                 TaxOut = 0.06f,
-                DailyOverdraftRenownLose = 5,
-                ReinvestmentRate = 0.2f
+                DailyOverdraftRenownLose = 5
             };
 
             // Includes the 'Default' preset that MCM provides
@@ -133,13 +126,5 @@ namespace IronBank
             HintText = "Daily renown lose when your bank account is overdrawn."
         )]
         public int DailyOverdraftRenownLose { get; set; }
-
-        [SettingPropertyGroup("{=IronBank_General}General")]
-        [SettingPropertyFloatingInteger(
-            "{=IronBank_Interests}Reinvestment rate",
-            minValue: 0f, maxValue: 1f, valueFormat: "P", RequireRestart = false,
-            HintText = "Rate of interests to deposit in bank account."
-        )]
-        public float ReinvestmentRate { get; set; }
     }
 }

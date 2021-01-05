@@ -3,10 +3,12 @@
 
 $ErrorActionPreference = "Stop"
 $location = Get-Location
-$now = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+$version = Select-Xml -Path ".\SubModule.xml" -XPath "/Module/Version/@value"
+  | Select-Object -Expand Node
+  | Select-Object -Expand value
 $solution = "$location\IronBank.sln"
 $outputdir = "$location\releases"
-$outputfile = "$outputdir\${now}.zip"
+$outputfile = "$outputdir\${version}.zip"
 
 Write-Host "Building $solution"
 Write-Host "To $outputfile"
