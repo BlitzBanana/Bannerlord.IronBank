@@ -1,4 +1,5 @@
 ﻿using MCM.Abstractions.Settings.Base.Global;
+using System;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -8,6 +9,30 @@ namespace IronBank
 {
     public class Mod: MBSubModuleBase
     {
+
+        /// <summary>
+        /// Compute current world chaos, based on the wars count.
+        /// More wars means higher loan costs but higher account interests !
+        /// </summary>
+        public static float WorldChaos
+        {
+            get
+            {
+                float worldChaos = 0f;
+                float warImpact = 1f / (float)Math.Pow(Kingdom.All.Count, 2);
+
+                foreach (Kingdom kingdom1 in Kingdom.All)
+                {
+                    foreach (Kingdom kingdom2 in Kingdom.All)
+                    {
+                        worldChaos += kingdom1.IsAtWarWith(kingdom2) ? warImpact : 0f;
+                    }
+                }
+
+                return worldChaos;
+            }
+        }
+
         public static ISettingsProvider Settings { get; private set; }
 
         protected override void OnBeforeInitialModuleScreenSetAsRoot()

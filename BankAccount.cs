@@ -18,6 +18,50 @@ namespace IronBank
         /// Random savegame identifier (type any large number to not be in conflict with other mods) (yeah strange system IMHO).
         /// </summary>
         public const int SAVE_ID = 2_431_637;
+        
+        /// <summary>
+        /// Deposit taxes.
+        /// </summary>
+        public static float TaxInRate
+        {
+            get
+            {
+                return 0.010f * Mod.Settings.TaxInScale;
+            }
+        }
+
+        /// <summary>
+        /// Withdraw taxes.
+        /// </summary>
+        public static float TaxOutRate
+        {
+            get
+            {
+                return 0.015f * Mod.Settings.TaxOutScale;
+            }
+        }
+
+        /// <summary>
+        /// Current interests rate.
+        /// </summary>
+        public static float InterestsRate
+        {
+            get
+            {
+                float rate = Mod.WorldChaos * Mod.WorldChaos * 0.005f + Mod.WorldChaos * 0.086f + 0.01f;
+                return rate * Mod.Settings.InterestsScale;
+            }
+        }
+        /// <summary>
+        /// Renown lose when the account is overdrafted.
+        /// </summary>
+        public static float RenownPenalty
+        {
+            get
+            {
+                return -10 * Mod.Settings.DailyOverdraftRenownLoseScale;
+            }
+        }
 
         /// <summary>
         /// Bank account gold amount.
@@ -54,10 +98,17 @@ namespace IronBank
         [SaveableProperty(4)]
         public float ReinvestmentRatio { get; set; }
 
+        /// <summary>
+        /// Bank golds from taxes and loans.
+        /// </summary>
+        [SaveableProperty(5)]
+        public long BankGold { get; set; }
+
         public BankAccount(string heroId, long gold = 0, float reinvestmentRatio = 0.2f)
         {
             this.HeroId = heroId;
             this.Gold = gold;
+            this.BankGold = 0;
             this.ReinvestmentRatio = reinvestmentRatio;
         }
 
@@ -96,9 +147,17 @@ namespace IronBank
         {
             if (!this.CanDeposit(amount)) return (this.Gold, this.Hero.Gold);
 
-            int tax = (int)Math.Ceiling(Mod.Settings.TaxIn * amount);
+            int tax = (int)Math.Ceiling(amount * BankAccount.TaxInRate);
             this.Hero.ChangeHeroGold(amount * -1);
             this.Gold += amount - tax;
+            this.BankGold += tax;
+
+            if (tax > 0)
+            {
+                InformationManager.DisplayMessage(
+                    new InformationMessage($"Iron Bank: You paid a deposit tax of {tax}<img src=\"Icons\\Coin@2x\">.")
+                );
+            }
 
             return (this.Gold, this.Hero.Gold);
         }
@@ -116,9 +175,17 @@ namespace IronBank
         {
             if (!this.CanWithdraw(amount)) return (this.Gold, this.Hero.Gold);
 
-            int tax = (int)Math.Ceiling(Mod.Settings.TaxOut * amount);
+            int tax = (int)Math.Ceiling(amount * BankAccount.TaxOutRate);
             this.Gold -= amount;
             this.Hero.ChangeHeroGold(amount - tax);
+            this.BankGold += tax;
+
+            if (tax > 0)
+            {
+                InformationManager.DisplayMessage(
+                    new InformationMessage($"Iron Bank: You paid a withdraw tax of {tax}<img src=\"Icons\\Coin@2x\">.")
+                );
+            }
 
             return (this.Gold, this.Hero.Gold);
         }
@@ -130,13 +197,14 @@ namespace IronBank
         /// Amount of interests to deposit into Hero purse,
         /// Amount of interests to deposit into bank account
         /// </returns>
-        public (int purse, int account) EstimateInterests()
+        public (int purse, int account, int bank) EstimateInterests()
         {
-            int amount = (int)Math.Floor(this.Gold * Mod.Settings.InterestRate);
-            int purse = (int)Math.Floor((1f - this.ReinvestmentRatio) * amount);
-            int account = (int)Math.Ceiling(this.ReinvestmentRatio * amount);
+            int amount = (int)Math.Floor(this.Gold * BankAccount.InterestsRate);
+            int purse = (int)Math.Floor((1f - this.ReinvestmentRatio) * amount * 0.98);
+            int account = (int)Math.Ceiling(this.ReinvestmentRatio * amount * 0.98);
+            int bank = (int)Math.Ceiling(this.ReinvestmentRatio * amount * 0.02);
 
-            return (purse, account);
+            return (purse, account, bank);
         }
 
         /// <summary>
@@ -149,10 +217,11 @@ namespace IronBank
         /// </returns>
         public (int purse, int account, int payments) ApplyDailyTransactions()
         {
-            var (purse, account) = this.EstimateInterests();
+            var (purse, account, bank) = this.EstimateInterests();
 
             this.Hero.ChangeHeroGold(purse);
             this.Gold += account;
+            this.BankGold += bank; // Bank takes management fees
 
             int payments = 0;
             foreach (BankLoan loan in this.Loans)
@@ -161,14 +230,22 @@ namespace IronBank
                 this.Gold += _payment;
                 loan.Remaining = _remaining;
                 payments += _payment;
+
+                if (loan.Remaining == 0)
+                {
+                    this.BankGold += loan.Cost;
+                }
             }
 
             // Hero account is overdrawn, let's make him lose some renown
-            if (this.Gold < 0)
+            if (this.Gold < 0 && Mod.Settings.DailyOverdraftRenownLoseScale > 0f)
             {
-                this.Hero.Clan.AddRenown(-10);
+                this.Hero.Clan.AddRenown(BankAccount.RenownPenalty);
                 InformationManager.DisplayMessage(
                     new InformationMessage($"Iron Bank: You owes us <b>{this.Gold}</b><img src=\"Icons\\Coin@2x\"> from your loans, be careful.", Colors.Magenta)
+                );
+                InformationManager.DisplayMessage(
+                    new InformationMessage($"Iron Bank: {BankAccount.RenownPenalty:+#;-#;0} renown penalty was applyed to your clan.", Colors.Magenta)
                 );
             }
 

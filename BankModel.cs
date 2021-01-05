@@ -14,7 +14,7 @@ namespace IronBank
 
             if (clan.Leader.StringId == Hero.MainHero.StringId && explanation != null)
             {
-                var (purse, _) = BankBehavior.BankAccount.EstimateInterests();
+                var (purse, _, _) = BankBehavior.BankAccount.EstimateInterests();
 
                 if (purse > 0)
                 {

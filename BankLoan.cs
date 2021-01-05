@@ -109,7 +109,7 @@ namespace IronBank
             this.Cost = simulation.Cost;
             this.Payments = simulation.Payments;
             this.Remaining = simulation.Total;
-            this.Date = (float)CampaignTime.Now.ToDays;
+            this.Date = (float)Math.Floor(CampaignTime.Now.ToDays);
             this.Duration = simulation.Duration;
             this.Delay = simulation.Delay;
 
@@ -125,7 +125,8 @@ namespace IronBank
         /// </returns>
         public (int payment, int remaining) CalculatePayment()
         {
-            if (CampaignTime.Now.ToDays < this.PaymentsStartDate) return (0, this.Remaining);
+            int started = (int)(Math.Floor(CampaignTime.Now.ToDays) - this.PaymentsStartDate);
+            if (started < 0) return (0, this.Remaining);
             int value = Math.Max(this.Payments, this.Remaining * -1);
             return (value, this.Remaining + value);
         }
@@ -151,46 +152,24 @@ namespace IronBank
             this.MinAmount = 1;
             this.MaxAmount = currentLoansCount < 4 ? absoluteMaxAmount - currentLoansAmount : 0;
 
-            // The delay is clamped to (5, 31)
+            // The delay is clamped
             this.MinDelay = 1;
-            this.MaxDelay = (int)Math.Max(5, renown / 800f * (float)CampaignTime.DaysInSeason);
-
-            // The duration is clamped to (10, 62)
+            this.MaxDelay = (int)Math.Max(5, Math.Min(CampaignTime.DaysInSeason * 1.5f, renown / CampaignTime.DaysInSeason * 0.2));
+            
+            // The duration is clamped
             this.MinDuration = 1;
-            this.MaxDuration = (int)Math.Max(10, renown / 250f * (float)CampaignTime.DaysInSeason);
+            this.MaxDuration = (int)Math.Max(10, Math.Min(CampaignTime.DaysInSeason * 3f, renown / CampaignTime.DaysInSeason * 0.4));
         }
     }
 
     public struct BankLoanSimulation {
-        /// <summary>
-        /// Compute current world chaos, based on the wars count.
-        /// More wars means higher loan costs but higher account interests !
-        /// </summary>
-        public static float WorldChaos
-        {
-            get
-            {
-                float worldChaos = 0f;
-                float warImpact = 1f / (float)Math.Pow(Kingdom.All.Count, 2);
-
-                foreach (Kingdom kingdom1 in Kingdom.All)
-                {
-                    foreach (Kingdom kingdom2 in Kingdom.All)
-                    {
-                        worldChaos += kingdom1.IsAtWarWith(kingdom2) ? warImpact : 0f;
-                    }
-                }
-
-                return worldChaos;
-            }
-        }
-
         public string HeroId { get; private set; }
         public int Amount { get; private set; }
         public int Cost { get; private set; }
         public int Delay { get; private set; }
         public int Duration { get; private set; }
         public int Payments { get; private set; }
+
         public int Total
         {
             get
@@ -202,10 +181,9 @@ namespace IronBank
         public BankLoanSimulation(Hero hero, int amount, int delay = 15, int duration = 31)
         {
             int totalDuration = delay + duration;
-            float rate = BankLoanSimulation.WorldChaos / 50f;
-            int cost = (int)Math.Ceiling(amount * rate * totalDuration);
+            int cost = (int)Math.Ceiling(amount * BankAccount.InterestsRate * totalDuration);
             int total = amount + cost;
-            int payments = total / duration * -1;
+            int payments = (int)Math.Ceiling(-1f  * total / duration);
 
             this.HeroId = hero.StringId;
             this.Amount = amount;
