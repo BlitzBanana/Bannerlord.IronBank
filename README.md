@@ -21,8 +21,11 @@ A very basic banking system for Mount and Blade: Bannerlord, and my first mod ev
 - [x] Loans, affected by renown (high renown means high loan capacity, more wars means higher cost)
 - [x] Overdraft, affecting by renown (a negative bank balance lowers your renown proportionally)
 - [ ] Dynamic interests rate, affected by world stability (more wars means higher interest rates)
-- [ ] Move reinvestment option from MCM to ingame bank menu
+- [x] Move reinvestment option from MCM to ingame bank menu
 - [x] Update release script to name the zip with the SubModule version
+- [ ] Add save game compatibility infos in README
+- [ ] Support Localization
+- [ ] Learn about the new GUI system, should we use it ?
 - [ ] Publish on [nexus](https://www.nexusmods.com/mountandblade2bannerlord)
 
 ## Development
