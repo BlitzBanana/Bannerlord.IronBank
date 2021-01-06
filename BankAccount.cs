@@ -48,10 +48,23 @@ namespace IronBank
         {
             get
             {
-                float rate = Mod.WorldChaos * Mod.WorldChaos * 0.005f + Mod.WorldChaos * 0.086f + 0.01f;
+                float rate = Mod.WorldChaos * Mod.WorldChaos * 0.005f + Mod.WorldChaos * 0.086f - 0.015f;
                 return rate * Mod.Settings.InterestsScale;
             }
         }
+
+        /// <summary>
+        /// Current loan interests rate.
+        /// </summary>
+        public static float LoanInterestsRate
+        {
+            get
+            {
+                float rate = Mod.WorldChaos * Mod.WorldChaos * 0.005f + Mod.WorldChaos * 0.086f + 0.005f;
+                return rate * Mod.Settings.LoanInterestsScale;
+            }
+        }
+
         /// <summary>
         /// Renown lose when the account is overdrafted.
         /// </summary>

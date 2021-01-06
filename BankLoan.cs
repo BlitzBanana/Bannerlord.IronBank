@@ -181,7 +181,7 @@ namespace IronBank
         public BankLoanSimulation(Hero hero, int amount, int delay = 15, int duration = 31)
         {
             int totalDuration = delay + duration;
-            int cost = (int)Math.Ceiling(amount * BankAccount.InterestsRate * totalDuration);
+            int cost = (int)Math.Ceiling(amount * BankAccount.LoanInterestsRate * totalDuration);
             int total = amount + cost;
             int payments = (int)Math.Ceiling(-1f  * total / duration);
 

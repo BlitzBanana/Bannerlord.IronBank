@@ -42,7 +42,7 @@ namespace IronBank
         }
 
         /// <summary>
-        /// Saves or Load data from a savegame.
+        /// Sync data with a savegame (In & Out).
         /// </summary>
         /// <param name="dataStore"></param>
         public override void SyncData(IDataStore dataStore)
