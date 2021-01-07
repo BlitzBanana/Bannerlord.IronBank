@@ -134,10 +134,6 @@ namespace IronBank
 
     public struct BankLoanCapacity
     {
-        public int MinDelay { get; }
-        public int MaxDelay { get; }
-        public int MinDuration { get; }
-        public int MaxDuration { get; }
         public int MinAmount { get; }
         public int MaxAmount { get; }
 
@@ -151,14 +147,6 @@ namespace IronBank
             // The max amount is directly proportional of Hero.renown
             this.MinAmount = 1;
             this.MaxAmount = currentLoansCount < 4 ? absoluteMaxAmount - currentLoansAmount : 0;
-
-            // The delay is clamped
-            this.MinDelay = 1;
-            this.MaxDelay = (int)Math.Max(5, Math.Min(CampaignTime.DaysInSeason * 1.5f, renown / CampaignTime.DaysInSeason * 0.2));
-            
-            // The duration is clamped
-            this.MinDuration = 1;
-            this.MaxDuration = (int)Math.Max(10, Math.Min(CampaignTime.DaysInSeason * 3f, renown / CampaignTime.DaysInSeason * 0.4));
         }
     }
 

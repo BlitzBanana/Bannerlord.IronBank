@@ -19,13 +19,13 @@ namespace IronBank
             get
             {
                 float worldChaos = 0f;
-                float warImpact = 1f / (float)Math.Pow(Kingdom.All.Count, 2);
+                float warImpact = 1f / (float)Math.Pow(Clan.All.Count, 2);
 
-                foreach (Kingdom kingdom1 in Kingdom.All)
+                foreach (Clan clan1 in Clan.All)
                 {
-                    foreach (Kingdom kingdom2 in Kingdom.All)
+                    foreach (Clan clan2 in Clan.All)
                     {
-                        worldChaos += kingdom1.IsAtWarWith(kingdom2) ? warImpact : 0f;
+                        worldChaos += clan1.IsAtWarWith(clan2) ? warImpact : 0f;
                     }
                 }
 

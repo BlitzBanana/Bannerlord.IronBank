@@ -61,7 +61,7 @@ namespace IronBank
             get
             {
                 float rate = Mod.WorldChaos * Mod.WorldChaos * 0.005f + Mod.WorldChaos * 0.086f + 0.005f;
-                return rate * Mod.Settings.LoanInterestsScale;
+                return Math.Max(0.004f, rate * Mod.Settings.LoanInterestsScale);
             }
         }
 
@@ -214,8 +214,8 @@ namespace IronBank
         {
             int amount = (int)Math.Floor(this.Gold * BankAccount.InterestsRate);
             int purse = (int)Math.Floor((1f - this.ReinvestmentRatio) * amount * 0.98);
-            int account = (int)Math.Ceiling(this.ReinvestmentRatio * amount * 0.98);
-            int bank = (int)Math.Ceiling(this.ReinvestmentRatio * amount * 0.02);
+            int account = (int)Math.Ceiling(this.ReinvestmentRatio * amount * 0.95);
+            int bank = (int)Math.Ceiling(this.ReinvestmentRatio * amount * 0.05);
 
             return (purse, account, bank);
         }

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.GameMenus;
 using TaleWorlds.Core;
@@ -424,35 +426,48 @@ namespace IronBank
         /// </summary>
         private void AskLoanDuration(BankLoanCapacity capacity, int amount)
         {
-            InformationManager.ShowTextInquiry(new TextInquiryData(
+            InformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
                 titleText: $"How long do you want to repay?",
-                text: $"You can loan for {capacity.MaxDuration} days maximum.",
-                isAffirmativeOptionShown: true,
-                isNegativeOptionShown: true,
+                descriptionText: $"Please chose carefuly, we don't like bad payers and I assure you wouldn't like to be one.",
+                isExitShown: true,
+                maxSelectableOptionCount: 1,
                 affirmativeText: "Continue",
                 negativeText: "Back",
-                textCondition: new Func<string, bool>((string durationInput) =>
+                inquiryElements: new List<InquiryElement>()
                 {
-                    return int.TryParse(durationInput, out int duration)
-                        && capacity.MinDuration <= duration
-                        && capacity.MaxDuration >= duration;
-                }),
-                affirmativeAction: new Action<string>((string durationInput) =>
+                    new InquiryElement("10_days", "10 days", new ImageIdentifier(ImageIdentifierType.Null)),
+                    new InquiryElement("20_days", "20 days", new ImageIdentifier(ImageIdentifierType.Null)),
+                    new InquiryElement("40_days", "40 days", new ImageIdentifier(ImageIdentifierType.Null)),
+                    new InquiryElement("80_days", "80 days", new ImageIdentifier(ImageIdentifierType.Null))
+                },
+                affirmativeAction: new Action<List<InquiryElement>>((List<InquiryElement> elements) =>
                 {
-                    if (int.TryParse(durationInput, out int duration) && capacity.MinDuration <= duration && capacity.MaxDuration >= duration)
+                    var selected = elements.First();
+
+                    switch (selected.Identifier as string)
                     {
-                        this.AskLoanDelay(capacity, amount, duration);
-                    }
-                    else
-                    {
-                        InformationManager.DisplayMessage(new InformationMessage($"Your loan simulation has been aborted."));
+                        case "10_days":
+                            this.AskLoanDelay(capacity, amount, 10);
+                            break;
+                        case "20_days":
+                            this.AskLoanDelay(capacity, amount, 20);
+                            break;
+                        case "40_days":
+                            this.AskLoanDelay(capacity, amount, 40);
+                            break;
+                        case "80_days":
+                            this.AskLoanDelay(capacity, amount, 80);
+                            break;
+                        default:
+                            InformationManager.DisplayMessage(new InformationMessage($"Your loan simulation has been aborted."));
+                            break;
                     }
                 }),
-                negativeAction: new Action(() =>
+                negativeAction: new Action<List<InquiryElement>>((List<InquiryElement> elements) =>
                 {
                     this.AskLoanAmount(capacity);
                 })
-            ), true);
+            ));
         }
 
         /// <summary>
@@ -460,35 +475,48 @@ namespace IronBank
         /// </summary>
         private void AskLoanDelay(BankLoanCapacity capacity, int amount, int duration)
         {
-            InformationManager.ShowTextInquiry(new TextInquiryData(
+            InformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
                 titleText: $"How long would you like to wait before repaying?",
-                text: $"You can push back payment for {capacity.MaxDelay} days maximum.",
-                isAffirmativeOptionShown: true,
-                isNegativeOptionShown: true,
+                descriptionText: $"Be reasonable.",
+                isExitShown: true,
+                maxSelectableOptionCount: 1,
                 affirmativeText: "Continue",
                 negativeText: "Back",
-                textCondition: new Func<string, bool>((string delayInput) =>
+                inquiryElements: new List<InquiryElement>()
                 {
-                    return int.TryParse(delayInput, out int delay)
-                        && capacity.MinDelay <= delay
-                        && capacity.MaxDelay >= delay;
-                }),
-                affirmativeAction: new Action<string>((string delayInput) =>
+                    new InquiryElement("5_days", "5 days", new ImageIdentifier(ImageIdentifierType.Null)),
+                    new InquiryElement("10_days", "10 days", new ImageIdentifier(ImageIdentifierType.Null)),
+                    new InquiryElement("15_days", "15 days", new ImageIdentifier(ImageIdentifierType.Null)),
+                    new InquiryElement("20_days", "20 days", new ImageIdentifier(ImageIdentifierType.Null))
+                },
+                affirmativeAction: new Action<List<InquiryElement>>((List<InquiryElement> elements) =>
                 {
-                    if (int.TryParse(delayInput, out int delay) && capacity.MinDelay <= delay && capacity.MaxDelay >= delay)
+                    var selected = elements.First();
+
+                    switch (selected.Identifier as string)
                     {
-                        this.AskLoanConfirmation(capacity, amount, duration, delay);
-                    }
-                    else
-                    {
-                        InformationManager.DisplayMessage(new InformationMessage($"Your loan simulation has been aborted."));
+                        case "5_days":
+                            this.AskLoanConfirmation(capacity, amount, duration, 5);
+                            break;
+                        case "10_days":
+                            this.AskLoanConfirmation(capacity, amount, duration, 10);
+                            break;
+                        case "15_days":
+                            this.AskLoanConfirmation(capacity, amount, duration, 15);
+                            break;
+                        case "20_days":
+                            this.AskLoanConfirmation(capacity, amount, duration, 20);
+                            break;
+                        default:
+                            InformationManager.DisplayMessage(new InformationMessage($"Your loan simulation has been aborted."));
+                            break;
                     }
                 }),
-                negativeAction: new Action(() =>
+                negativeAction: new Action<List<InquiryElement>>((List<InquiryElement> elements) =>
                 {
                     this.AskLoanDuration(capacity, amount);
                 })
-            ), true);
+            ));
         }
 
         /// <summary>
