@@ -41,7 +41,7 @@ namespace IronBank
 
         public override string DisplayName => new TextObject(
             "{=IronBank__Settings_Name}Iron Bank {VERSION}",
-            new Dictionary<string, TextObject>
+            new Dictionary<string, object>
             {
                 { "VERSION", new TextObject(typeof(Settings).Assembly.GetName().Version.ToString(3)) }
             }

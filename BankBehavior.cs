@@ -37,7 +37,7 @@ namespace IronBank
             {
                 if (_bank_account == null)
                 {
-                    _bank_account = new BankAccount(Hero.MainHero.StringId);
+                    _bank_account = new BankAccount();
                 }
                 return _bank_account;
             }
@@ -109,7 +109,7 @@ namespace IronBank
                 campaignGameStarter.AddGameMenu(
                     menuId: BANK_MENU_ID,
                     menuText: "{=bank_account}{IronBank_Menu_Bank}",
-                    menuFlags: GameMenu.MenuFlags.none,
+                    menuFlags: GameMenu.MenuFlags.None,
                     overlay: TaleWorlds.CampaignSystem.Overlay.GameOverlays.MenuOverlayType.None,
                     initDelegate: delegate (MenuCallbackArgs args)
                     {
@@ -268,9 +268,9 @@ namespace IronBank
                 isNegativeOptionShown: true,
                 affirmativeText: "Deposit",
                 negativeText: "Back",
-                textCondition: new Func<string, bool>((string input) =>
+                textCondition: new Func<string, Tuple<bool, string>>((string input) =>
                 {
-                    return int.TryParse(input, out int amount) && BankAccount.CanDeposit(amount);
+                    return Tuple.Create(int.TryParse(input, out int amount) && BankAccount.CanDeposit(amount), "");
                 }),
                 affirmativeAction: new Action<string>((string input) =>
                 {
@@ -301,9 +301,9 @@ namespace IronBank
                 isNegativeOptionShown: true,
                 affirmativeText: "Withdraw",
                 negativeText: "Back",
-                textCondition: new Func<string, bool>((string input) =>
+                textCondition: new Func<string, Tuple<bool, string>>((string input) =>
                 {
-                    return int.TryParse(input, out int amount) && BankAccount.CanWithdraw(amount);
+                    return Tuple.Create(int.TryParse(input, out int amount) && BankAccount.CanWithdraw(amount), "");
                 }),
                 affirmativeAction: new Action<string>((string input) =>
                 {
@@ -341,7 +341,7 @@ namespace IronBank
                 text += $" \n";
             }
 
-            InformationManager.ShowInquiry(new InquiryData(
+            InformationManager.ShowInquiry(new TaleWorlds.Library.InquiryData(
                 titleText: $"Your current loans.",
                 text: text,
                 isAffirmativeOptionShown: true,
@@ -367,9 +367,9 @@ namespace IronBank
                 isNegativeOptionShown: true,
                 affirmativeText: "Set",
                 negativeText: "Back",
-                textCondition: new Func<string, bool>((string input) =>
+                textCondition: new Func<string, Tuple<bool, string>>((string input) =>
                 {
-                    return int.TryParse(input, out int amount) && amount >= 0 && amount <= 100;
+                    return Tuple.Create(int.TryParse(input, out int amount) && amount >= 0 && amount <= 100, "");
                 }),
                 affirmativeAction: new Action<string>((string input) =>
                 {
@@ -400,11 +400,14 @@ namespace IronBank
                 isNegativeOptionShown: true,
                 affirmativeText: "Continue",
                 negativeText: "Cancel",
-                textCondition: new Func<string, bool>((string amountInput) =>
+                textCondition: new Func<string, Tuple<bool, string>>((string input) =>
                 {
-                    return int.TryParse(amountInput, out int amount)
-                        && capacity.MinAmount <= amount
-                        && capacity.MaxAmount >= amount;
+                    return Tuple.Create(
+                        int.TryParse(input, out int amount)
+                            && capacity.MinAmount <= amount
+                            && capacity.MaxAmount >= amount,
+                        ""
+                    );
                 }),
                 affirmativeAction: new Action<string>((string amountInput) =>
                 {
@@ -525,7 +528,7 @@ namespace IronBank
         private void AskLoanConfirmation(BankLoanCapacity capacity, int amount, int duration, int delay)
         {
             var simulation = new BankLoanSimulation(Hero.MainHero, amount, delay, duration);
-            InformationManager.ShowInquiry(new InquiryData(
+            InformationManager.ShowInquiry(new TaleWorlds.Library.InquiryData(
                 titleText: "Are you sure, their is no comming back with us ?",
                 text: $"You will begin to pay <b>{simulation.Payments * -1}</b><img src=\"Icons\\Coin@2x\"> a day from your account for <b>{simulation.Duration} days</b> in <b>{simulation.Delay} days</b>. " +
                     $"Borrowing from us {amount}<img src=\"Icons\\Coin@2x\"> will cost you <b>{simulation.Cost}</b><img src=\"Icons\\Coin@2x\"> of bank interests for a total of <b>{simulation.Total}</b><img src=\"Icons\\Coin@2x\"> repaid.\n",

@@ -8,18 +8,18 @@ namespace IronBank
     /// </summary>
     public class BankClanFinanceModel : DefaultClanFinanceModel
     {
-        public override float CalculateClanGoldChange(Clan clan, StatExplainer explanation = null, bool applyWithdrawals = false)
+        public override ExplainedNumber CalculateClanGoldChange(Clan clan, bool includeDescriptions = false, bool applyWithdrawals = false)
         {
-            float gold = base.CalculateClanGoldChange(clan, explanation, applyWithdrawals);
+            ExplainedNumber gold = base.CalculateClanGoldChange(clan, includeDescriptions, applyWithdrawals);
 
-            if (clan.Leader.StringId == Hero.MainHero.StringId && explanation != null)
+            if (clan.Leader.StringId == Hero.MainHero.StringId)
             {
-                var (purse, _, _) = BankBehavior.BankAccount.EstimateInterests();
+                var (purse, _) = BankBehavior.BankAccount.EstimateInterests();
 
                 if (purse > 0)
                 {
-                    explanation.AddLine("Iron Bank - interests", purse, StatExplainer.OperationType.Add);
-                    return gold + purse;
+                    gold.Add(purse, new TaleWorlds.Localization.TextObject("Iron Bank - interests"));
+                    return gold;
                 }
             }
 

@@ -8,7 +8,7 @@ namespace IronBank
     /// </summary>
     public class Save : SaveableTypeDefiner
     {
-        public Save() : base(BankAccount.SAVE_ID) { }
+        public Save() : base(2_433_637) { }
 
         protected override void DefineClassTypes()
         {

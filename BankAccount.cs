@@ -11,14 +11,8 @@ namespace IronBank
     /// <summary>
     /// Bank account of the Hero.
     /// </summary>
-    [SaveableClass(BankAccount.SAVE_ID)]
     public class BankAccount
     {
-        /// <summary>
-        /// Random savegame identifier (type any large number to not be in conflict with other mods) (yeah strange system IMHO).
-        /// </summary>
-        public const int SAVE_ID = 2_431_637;
-        
         /// <summary>
         /// Deposit taxes.
         /// </summary>
@@ -26,7 +20,7 @@ namespace IronBank
         {
             get
             {
-                return 0.010f * Mod.Settings.TaxInScale;
+                return Math.Min(0.010f * Mod.Settings.TaxInScale, 1f);
             }
         }
 
@@ -37,7 +31,7 @@ namespace IronBank
         {
             get
             {
-                return 0.015f * Mod.Settings.TaxOutScale;
+                return Math.Min(0.015f * Mod.Settings.TaxOutScale, 1f);
             }
         }
 
@@ -48,7 +42,8 @@ namespace IronBank
         {
             get
             {
-                float rate = Mod.WorldChaos * Mod.WorldChaos * 0.005f + Mod.WorldChaos * 0.086f - 0.015f;
+                float chaos = Mod.WorldChaos;
+                float rate = (float)(Math.Pow(chaos, 2) * 0.15 + 0.005);
                 return rate * Mod.Settings.InterestsScale;
             }
         }
@@ -60,7 +55,8 @@ namespace IronBank
         {
             get
             {
-                float rate = Mod.WorldChaos * Mod.WorldChaos * 0.005f + Mod.WorldChaos * 0.086f + 0.005f;
+                float chaos = Mod.WorldChaos;
+                float rate = (float)(Math.Pow(chaos, 2) * 0.18 + 0.010);
                 return Math.Max(0.004f, rate * Mod.Settings.LoanInterestsScale);
             }
         }
@@ -83,19 +79,13 @@ namespace IronBank
         public long Gold { get; set; }
 
         /// <summary>
-        /// Bank account Hero identity.
-        /// </summary>
-        [SaveableProperty(2)]
-        public string HeroId { get; set; }
-
-        /// <summary>
         /// Bank account Hero.
         /// </summary>
         public Hero Hero
         {
             get
             {
-                return Hero.FindFirst((Hero hero) => hero.StringId == this.HeroId);
+                return Hero.MainHero;
             }
         }
 
@@ -111,17 +101,9 @@ namespace IronBank
         [SaveableProperty(4)]
         public float ReinvestmentRatio { get; set; }
 
-        /// <summary>
-        /// Bank golds from taxes and loans.
-        /// </summary>
-        [SaveableProperty(5)]
-        public long BankGold { get; set; }
-
-        public BankAccount(string heroId, long gold = 0, float reinvestmentRatio = 0.2f)
+        public BankAccount(long gold = 0, float reinvestmentRatio = 0.2f)
         {
-            this.HeroId = heroId;
             this.Gold = gold;
-            this.BankGold = 0;
             this.ReinvestmentRatio = reinvestmentRatio;
         }
 
@@ -163,7 +145,6 @@ namespace IronBank
             int tax = (int)Math.Ceiling(amount * BankAccount.TaxInRate);
             this.Hero.ChangeHeroGold(amount * -1);
             this.Gold += amount - tax;
-            this.BankGold += tax;
 
             if (tax > 0)
             {
@@ -191,7 +172,6 @@ namespace IronBank
             int tax = (int)Math.Ceiling(amount * BankAccount.TaxOutRate);
             this.Gold -= amount;
             this.Hero.ChangeHeroGold(amount - tax);
-            this.BankGold += tax;
 
             if (tax > 0)
             {
@@ -210,14 +190,13 @@ namespace IronBank
         /// Amount of interests to deposit into Hero purse,
         /// Amount of interests to deposit into bank account
         /// </returns>
-        public (int purse, int account, int bank) EstimateInterests()
+        public (int purse, int account) EstimateInterests()
         {
             int amount = (int)Math.Floor(this.Gold * BankAccount.InterestsRate);
-            int purse = (int)Math.Floor((1f - this.ReinvestmentRatio) * amount * 0.98);
-            int account = (int)Math.Ceiling(this.ReinvestmentRatio * amount * 0.95);
-            int bank = (int)Math.Ceiling(this.ReinvestmentRatio * amount * 0.05);
+            int purse = (int)Math.Floor((1f - this.ReinvestmentRatio) * amount * (1f - BankAccount.TaxOutRate));
+            int account = (int)Math.Ceiling(this.ReinvestmentRatio * amount);
 
-            return (purse, account, bank);
+            return (purse, account);
         }
 
         /// <summary>
@@ -230,11 +209,9 @@ namespace IronBank
         /// </returns>
         public (int purse, int account, int payments) ApplyDailyTransactions()
         {
-            var (purse, account, bank) = this.EstimateInterests();
+            var (purse, account) = this.EstimateInterests();
 
-            this.Hero.ChangeHeroGold(purse);
             this.Gold += account;
-            this.BankGold += bank; // Bank takes management fees
 
             int payments = 0;
             foreach (BankLoan loan in this.Loans)
@@ -243,11 +220,6 @@ namespace IronBank
                 this.Gold += _payment;
                 loan.Remaining = _remaining;
                 payments += _payment;
-
-                if (loan.Remaining == 0)
-                {
-                    this.BankGold += loan.Cost;
-                }
             }
 
             // Hero account is overdrawn, let's make him lose some renown

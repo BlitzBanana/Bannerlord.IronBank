@@ -8,14 +8,8 @@ namespace IronBank
     /// <summary>
     /// Bank account of the Hero.
     /// </summary>
-    [SaveableClass(BankLoan.SAVE_ID)]
     public class BankLoan
     {
-        /// <summary>
-        /// Random savegame identifier (type any large number to not be in conflict with other mods) (yeah strange system IMHO).
-        /// </summary>
-        public const int SAVE_ID = 2_433_637;
-
         /// <summary>
         /// Amount borrowed.
         /// </summary>

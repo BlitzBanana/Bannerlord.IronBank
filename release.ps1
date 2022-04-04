@@ -3,9 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 $location = Get-Location
-$version = Select-Xml -Path ".\SubModule.xml" -XPath "/Module/Version/@value"
-  | Select-Object -Expand Node
-  | Select-Object -Expand value
+$version =  Select-Xml -Path ".\SubModule.xml" -XPath "/Module/Version/@value" | Select-Object -Expand Node | Select-Object -Expand value
 $solution = "$location\IronBank.sln"
 $outputdir = "$location\releases"
 $outputfile = "$outputdir\${version}.zip"

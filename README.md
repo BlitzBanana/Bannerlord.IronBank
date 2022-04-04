@@ -69,7 +69,7 @@ When you starts a debug session, it runs the game with the mod and its dependenc
 ### Releasing
 
 Just run `release.ps1` powershell script.  
-It will generate a zip ready to ne renamed with the version.
+It will generate a zip ready to be renamed with the version.
 
 ## Screenshots
 

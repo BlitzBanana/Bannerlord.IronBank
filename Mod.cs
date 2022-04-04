@@ -1,15 +1,19 @@
 ﻿using MCM.Abstractions.Settings.Base.Global;
-using System;
+using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
 
+/// <summary>
+/// Main documentation:
+/// https://docs.bannerlordmodding.com/
+/// </summary>
+
 namespace IronBank
 {
     public class Mod: MBSubModuleBase
     {
-
         /// <summary>
         /// Compute current world chaos, based on the wars count.
         /// More wars means higher loan costs but higher account interests !
@@ -18,18 +22,23 @@ namespace IronBank
         {
             get
             {
-                float worldChaos = 0f;
-                float warImpact = 1f / (float)Math.Pow(Clan.All.Count, 2);
+                var kingdoms = Kingdom.All;
+                var kingdomsCount = kingdoms.Count();
+                var warImpact = 1f / ((kingdomsCount * (kingdomsCount + 1f)) / 2f);
+                var chaos = 0f;
 
-                foreach (Clan clan1 in Clan.All)
+                foreach (var kingdomA in kingdoms)
                 {
-                    foreach (Clan clan2 in Clan.All)
+                    foreach (var kingdomB in kingdoms)
                     {
-                        worldChaos += clan1.IsAtWarWith(clan2) ? warImpact : 0f;
+                        if (kingdomA.Id != kingdomB.Id && kingdomA.IsAtWarWith(kingdomB))
+                        {
+                            chaos += warImpact;
+                        }
                     }
                 }
 
-                return worldChaos;
+                return chaos;
             }
         }
 
